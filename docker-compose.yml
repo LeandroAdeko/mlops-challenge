@@ -62,11 +62,69 @@ services:
       WRAPT_DISABLE_EXTENSIONS: "1"
       PYTHONUNBUFFERED: "1"
       ARTIFACTS_DIR: /workspace/${ARTIFACTS_DIR:-artifacts}
-      DEFAULT_RUN_ID: ${DEFAULT_RUN_ID:-}
-    ports:
-      - "${API_PORT:-8000}:8000"
+      DEFAULT_RUN_ID: ${DEFAULT_RUN_ID:-nmt_20260501T020331Z_uqevf5}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 2
     command: >
       bash -lc "uvicorn inference_api.main:app --host 0.0.0.0 --port 8000"
+
+  gateway:
+    profiles: ["api"]
+    image: nginx:latest
+    ports:
+      - "0.0.0.0:8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - api
+
+  loki:
+    profiles: ["api"]
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    profiles: ["api"]
+    image: grafana/promtail:latest
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yml
+      - nginx_logs:/var/log/nginx
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+
+  grafana:
+    profiles: ["api"]
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - loki
+
+  n8n:
+    profiles: ["api"]
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+    volumes:
+      - n8n_data:/home/node/.n8n
 
   tests:
     profiles: ["tests"]
@@ -81,8 +139,11 @@ services:
     environment:
       WRAPT_DISABLE_EXTENSIONS: "1"
       PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /workspace
     command: >
       bash -lc "pytest -q"
 
 volumes:
   tfds_cache:
+  nginx_logs:
+  n8n_data:
