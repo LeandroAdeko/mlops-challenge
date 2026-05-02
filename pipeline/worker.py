@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 # Configuração de logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
@@ -49,9 +49,17 @@ def run_prepare(params: PrepareParams = PrepareParams()):
         "--train_records", str(params.train_records),
         "--val_records", str(params.val_records)
     ]
+    logger.debug(f"Comando de preparação: {cmd}")
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        
+        for line in result.stdout.splitlines():
+            logger.info(line)
+        if result.stderr:
+            for line in result.stderr.splitlines():
+                logger.error(line)
+                
         logger.info("Preparação concluída com sucesso.")
         # Tenta encontrar a última linha de JSON na saída
         output_json = None
@@ -80,9 +88,17 @@ def run_train(params: TrainParams = TrainParams()):
         "--threshold", str(params.threshold),
         "--git_sha", str(params.git_sha)
     ]
+    logger.debug(f"Comando de treinamento: {cmd}")
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        
+        for line in result.stdout.splitlines():
+            logger.info(line)
+        if result.stderr:
+            for line in result.stderr.splitlines():
+                logger.error(line)
+                
         logger.info("Treinamento concluído.")
         
         # O train.py imprime um resumo JSON no final

@@ -23,9 +23,9 @@
         "url": "http://worker:8001/run/prepare",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonParameters": true,
-        "bodyParameters": {
-          "parameters": [
+        "jsonParameters": false,
+        "bodyParametersUi": {
+          "parameter": [
             {
               "name": "dataset_name",
               "value": "para_crawl/enpt"
@@ -60,9 +60,9 @@
         "url": "http://worker:8001/run/train",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonParameters": true,
-        "bodyParameters": {
-          "parameters": [
+        "jsonParameters": false,
+        "bodyParametersUi": {
+          "parameter": [
             {
               "name": "epochs",
               "value": "={{$node[\"Webhook\"].json[\"body\"][\"epochs\"] || 5}}"
