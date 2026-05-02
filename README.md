@@ -28,6 +28,12 @@ Este repositório fornece as **rotinas base** que o candidato utilizará para im
 
 ```
 mlops_challenge_starter/
+├── .github/                   # Workflows do GitHub Actions (CI/CD)
+├── docs/                      # Diagramas da solução
+├── pipeline/                  # Scripts e workers de execução do pipeline MLOps
+├── nginx/                     # Configurações do Nginx API Gateway
+├── n8n/                       # Definições de workflows de orquestração (n8n)
+├── monitoring/                # Configurações de observabilidade (Grafana, Loki, Promtail)
 ├── ml/                        # Pipeline de ML
 │   ├── common.py              # Utilitários (I/O JSON, hashing, run_id)
 │   ├── tokenizers.py          # Download e carregamento de tokenizers
@@ -47,6 +53,8 @@ mlops_challenge_starter/
 │
 ├── data/                      # Dados processados (gerados)
 ├── artifacts/                 # Artefatos de treino (SavedModel, configs)
+├── start.sh                   # Script principal de inicialização e verificação
+├── postman_collection.json    # Coleção do Postman com chamadas de API configuradas
 ├── Dockerfile                 # Imagem base (Python 3.11-slim)
 ├── docker-compose.yml         # Orquestração de todos os serviços
 └── requirements.txt           # Dependências Python
@@ -76,118 +84,106 @@ O modelo é um **Transformer** com arquitetura encoder-decoder implementado do z
 
 ---
 
-## 🚀 Executando as Rotinas (Quick Start)
+## 🛠️ Correções e Melhorias Realizadas (Resolução de Bugs)
 
-As rotinas podem ser executadas individualmente com Docker Compose usando **profiles**.
+Neste projeto, nos deparamos com erros estruturais que inviabilizavam a execução do fluxo base. Abaixo as correções aplicadas:
 
-### Pré-requisitos
+### 1. Ajuste de Versões de Bibliotecas e Conflitos (Protobuf e TensorFlow)
+> **Problema**: Incompatibilidades e erros em tempo de execução causados por conflito de versões (ex: `AttributeError: 'FieldDescriptor' object has no attribute 'label'`).
+- **Causa**: O ambiente de container precisava de um controle rigoroso nas dependências envolvendo TensorFlow e Protobuf.
+- **Solução**: Foram definidas as versões específicas para as ferramentas de machine learning no `requirements.txt`: `tensorflow==2.18.1`, `tensorflow-text==2.18.1` e limitada a versão do `protobuf<5.0.0` para estabilizar o ambiente containerizado.
 
-- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/install/)
+### 2. Falha de Dependência na API
+> **Erro**: `import importlib-resources` (ModuleNotFoundError durante inicialização do app).
+- **Causa**: Pacote ausente na imagem Docker de runtime.
+- **Solução**: A dependência foi adicionada explicitamente no arquivo `requirements.txt`.
 
-### 1. Preparar o Dataset
+### 3. Falha Estrutural nos Testes (Pytest)
+> **Erro**: `ModuleNotFoundError: No module named 'inference_api'`
+- **Causa**: O `pytest` não conseguia mapear a pasta raiz como um pacote Python válido.
+- **Solução**: Declaramos a variável de ambiente `PYTHONPATH: /workspace` nas configurações de teste no `docker-compose.yml`.
 
-```bash
-docker compose --profile prepare up --build
-```
+### 4. Inicialização de Modelos
+> **Erro**: SavedModel não encontrado ao iniciar a API.
+- **Causa**: O pathlib estava interpretando o `artifacts_dir` de forma incorreta.
+- **Solução**: Removido o `.strip("/")` do `artifacts_dir` no arquivo `inference_api/model_manager.py`.
 
-Baixa o dataset ParaCrawl EN-PT, tokeniza e gera TFRecords em `data/processed/`.
-
-**Variáveis opcionais:**
-
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `DATASET_NAME` | `para_crawl/enpt` | Dataset do TFDS |
-| `MAX_TOKENS` | `64` | Máximo de tokens por sentença |
-| `TRAIN_RECORDS` | `5000` | Amostras de treino |
-| `VAL_RECORDS` | `500` | Amostras de validação |
-| `SEED` | `42` | Seed de reprodutibilidade |
-
-### 2. Treinar o Modelo
-
-```bash
-docker compose --profile train up
-```
-
-Treina o Transformer e exporta o SavedModel versionado em `artifacts/<run_id>/`.
-
-**Variáveis opcionais:**
-
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `EPOCHS` | `5` | Número de épocas |
-| `BATCH_SIZE` | `32` | Tamanho do batch |
-| `THRESHOLD` | `0.30` | Threshold de qualidade |
-| `GIT_SHA` | `unknown` | SHA do commit para rastreabilidade |
-
-### 3. Iniciar a API de Inferência
-
-```bash
-docker compose --profile api up
-```
-
-A API estará disponível em **http://localhost:8000**.
-
-> **Dica:** Para especificar um modelo, defina `DEFAULT_RUN_ID=<run_id>`.
-
-### 4. Executar os Testes
-
-```bash
-docker compose --profile tests up
-```
+### 5. Exposição de Porta e Acesso no WSL 
+- **Causa**: Nuances de conectividade na máquina host (WSL2).
+- **Solução**: Mapeamento explícito das portas de serviço para permitir que o Postman no Windows acesse a API.
 
 ---
 
-## 📡 Endpoints da API
+## 🚀 Solução Final e Como Executar
 
-| Método | Rota | Descrição                                                          |
-|---|---|--------------------------------------------------------------------|
-| `GET` | `/health` | Health check — status, `run_id` e `model_loaded`                   |
-| `GET` | `/model` | Retorna o `run_id` do modelo ativo                                 |
-| `GET` | `/metrics` | Contadores: `requests_total`, `errors_total`, `translations_total` |
-| `POST` | `/predict` | Traduz texto EN → PT                                               |
-| `POST` | `/reload` | Hot-reload de modelo por `run_id` ou `artifacts_dir`               |
-| `GET` | `/docs` | Documentação interativa (Swagger UI)                               |
+A infraestrutura agora engloba uma arquitetura MLOps completa, incluindo **Gateway**, **Orquestração de Pipeline** e **Observabilidade**.
 
-### Exemplo — `/predict`
+### 1. Inicialização do Ambiente
 
-**Request:**
+O script principal para gerenciar o stack é o `start.sh`. Ele verifica o status dos containers e sobe apenas o que for necessário.
+
+- **Iniciar tudo:**
+  ```bash
+  bash start.sh
+  ```
+- **Forçar recriação (reset):**
+  ```bash
+  bash start.sh --force
+  ```
+
+### 2. Gateway Nginx e Planos de Acesso
+
+A infraestrutura separa o tráfego em dois planos distintos na porta `8080` para maior segurança:
+
+#### 🔹 Plano de Inferência (Consumidores)
+Usado para consumir as predições do modelo. Exige o header `X-API-Key: challenge-key`.
+
+**Exemplo de Predição:**
 ```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Olá, como vai você?"}'
+curl -X POST http://localhost:8080/predict \
+     -H "X-API-Key: challenge-key" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Hello world"}'
 ```
 
-**Response:**
-```json
-{
-  "translation": "Hello, how are you?",
-  "run_id": "nmt_20260225T130027Z_ap5vq0",
-  "latency_ms": 42.5
-}
+**Exemplo de Health Check:**
+```bash
+curl -X GET http://localhost:8080/health -H "X-API-Key: challenge-key"
 ```
 
----
+#### 🔸 Plano de Controle (Automação/Pipeline)
+Usado para disparar o pipeline de treinamento e deploy. Exige o header `X-Control-Key: super-secret-key`.
 
-## ⚙️ Variáveis de Ambiente (API)
+**Disparar Pipeline:**
+```bash
+curl -X POST http://localhost:8080/webhook/d89ecb76-f1b5-4dd9-84bb-e6f085673962 \
+     -H "X-Control-Key: super-secret-key"
+```
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `ARTIFACTS_DIR` | `artifacts` | Diretório raiz dos artefatos |
-| `DEFAULT_RUN_ID` | *(vazio)* | `run_id` do modelo a carregar na inicialização |
-| `API_PORT` | `8000` | Porta exposta pelo Docker |
+### 3. Orquestração com n8n
 
----
+O n8n é o cérebro do pipeline. Ele recebe o trigger e coordena as etapas.
+1. **Acesso:** [http://localhost:5678](http://localhost:5678)
+2. **Uso Local:** O arquivo `n8n/ml_pipeline.json` contém a definição completa do workflow. Você pode importá-lo localmente via interface do n8n para visualizar.
+3. **Webhook:** O pipeline é disparado via gateway na rota de controle especificada.
 
-## 🧪 Testes
+### 4. Observabilidade (Grafana & Loki)
 
-Os testes de contrato validam:
+Todos os logs da API, do Gateway e do Pipeline são centralizados.
+1. **Acesso:** [http://localhost:3000](http://localhost:3000)
+2. **Credenciais:** `admin` / `admin`
+3. **Visualizar Logs:**
+   - Vá em **Explore**.
+   - Selecione o datasource **Loki**.
+   - Use o filtro `{container="/mlops-challenge-api-1"}` para a API.
+   - Use o filtro `{container="/mlops-challenge-worker-1"}` para o Worker.
 
-- ✅ `/health` retorna `200` com `status`, `run_id` e `model_loaded`
-- ✅ `/predict` retorna `503`/`500` sem modelo carregado
-- ✅ `/predict` valida texto vazio (`422`) e texto acima de 512 caracteres (`422`)
-- ✅ `/metrics` retorna os três contadores como inteiros
-- ✅ `/metrics` incrementa corretamente após chamadas de `/predict`
-- ✅ `/model` retorna o campo `run_id`
+### 5. Testando com Postman
+
+Utilize o arquivo `postman_collection.json`:
+1. Importe a coleção no Postman.
+2. A coleção está dividida em **Inference Plane** e **Control Plane**.
+3. As chaves de acesso já estão pré-configuradas nos headers das requisições.
 
 ---
 
@@ -196,10 +192,12 @@ Os testes de contrato validam:
 | Tecnologia | Uso |
 |---|---|
 | **Python 3.11** | Linguagem principal |
-| **TensorFlow 2.20** | Framework de ML (modelo + servindo) |
-| **TensorFlow Text 2.20** | Tokenização |
+| **TensorFlow 2.18** | Framework de ML (modelo + servindo) |
+| **TensorFlow Text 2.18** | Tokenização |
 | **TensorFlow Datasets** | Download do dataset ParaCrawl |
 | **FastAPI** | Framework da API REST |
 | **Uvicorn** | Servidor ASGI |
-| **Pytest + HTTPX** | Testes automatizados |
+| **Nginx** | API Gateway (Rate Limiting e Autenticação) |
+| **n8n** | Orquestração de Pipeline MLOps |
+| **Grafana + Loki + Promtail** | Stack de Observabilidade e Logs |
 | **Docker / Docker Compose** | Containerização e orquestração |

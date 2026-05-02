@@ -131,8 +131,8 @@
         },
         "options": {},
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "headerParametersUi": {
+          "parameter": [
             {
               "name": "X-Control-Key",
               "value": "super-secret-key"

@@ -1,0 +1,30 @@
+flowchart LR
+    %% Nodes
+    Webhook(("Webhook<br>(POST)"))
+    Prepare["Prepare Data<br>POST /run/prepare"]
+    Train["Train Model<br>POST /run/train"]
+    Cond{"Is Approved?<br>(status == 'approved')"}
+    Deploy["Deploy Model<br>POST /run/deploy"]
+    Fim(("Fim<br>(Não Aprovado)"))
+    DeployFim(("Modelo<br>Implantado"))
+
+    %% Connections
+    Webhook -->|Dispara| Prepare
+    Prepare -->|Dataset pronto| Train
+    Train -->|Métricas e Status| Cond
+    Cond -- "Sim (Aprovado)" --> Deploy
+    Cond -- "Não" --> Fim
+    Deploy --> DeployFim
+
+    %% Styling
+    classDef trigger fill:#e1bee7,stroke:#8e24aa,stroke-width:2px;
+    classDef request fill:#bbdefb,stroke:#1976d2,stroke-width:2px,rx:10px,ry:10px;
+    classDef condition fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef success fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef fail fill:#ffebee,stroke:#d32f2f,stroke-width:2px;
+
+    class Webhook trigger;
+    class Prepare,Train,Deploy request;
+    class Cond condition;
+    class DeployFim success;
+    class Fim fail;

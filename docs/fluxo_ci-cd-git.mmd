@@ -1,0 +1,45 @@
+flowchart TB
+ subgraph Job1["Job 1: Lint and Test"]
+    direction TB
+        SetupPy["Setup Python 3.11"]
+        Checkout1["Checkout do Código"]
+        InstallDeps["Instalar Dependências <br>(Ruff, Pytest, requirements)"]
+        Lint["Lint: Verificação com Ruff"]
+        Test["Test: Execução com Pytest"]
+  end
+ subgraph Job2["Job 2: Build and Publish"]
+    direction TB
+        SetupDocker["Setup Docker Buildx"]
+        Checkout2["Checkout do Código"]
+        LoginGHCR["Login no GHCR <br>(GitHub Container Registry)"]
+        Meta["Extrair Metadados <br>(Tags e Labels)"]
+        BuildPush["Build e Push <br>da Imagem Docker"]
+  end
+    Push["Push (branch main)"] --> Trigger(("Início do<br>Workflow"))
+    PR["Pull Request (branch main)"] --> Trigger
+    Trigger --> Job1
+    Checkout1 --> SetupPy
+    SetupPy --> InstallDeps
+    InstallDeps --> Lint
+    Lint --> Test
+    Job1 -- Se passar no Lint e Test --> Condicao{"É um Push na<br>branch main?"}
+    Condicao -- Não (é apenas um PR) --> Fim(("Não publica imagem"))
+    Condicao -- Sim --> Job2
+    Checkout2 --> SetupDocker
+    SetupDocker --> LoginGHCR
+    LoginGHCR --> Meta
+    Meta --> BuildPush
+    BuildPush --> ImagemPublicada(("Imagem Publicada com sucesso!"))
+
+     Trigger:::trigger
+     Job1:::jobs
+     Condicao:::condition
+     Fim:::finish
+     Job2:::jobs
+     ImagemPublicada:::success
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px
+    classDef trigger fill:#e1bee7,stroke:#8e24aa,stroke-width:2px
+    classDef jobs fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,rx:10px,ry:10px
+    classDef condition fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef success fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef finish fill:#ffebee,stroke:#d32f2f,stroke-width:2px
