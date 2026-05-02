@@ -31,9 +31,7 @@ jobs:
 
       - name: Run Linter (Ruff)
         run: |
-          # Ruff é rápido e substitui flake8/black
           ruff check .
-          # Se preferir usar o formatter do ruff (equivalente ao black):
           # ruff format --check .
 
       - name: Run Tests (Pytest)
@@ -45,7 +43,6 @@ jobs:
   build-and-publish:
     name: Build and Publish Docker Image
     needs: lint-and-test
-    # Só executa o build/publish se for um push na branch main
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

@@ -5,11 +5,9 @@ import logging
 import os
 import subprocess
 import sys
-from pathlib import Path
-from typing import Any, Dict, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Configuração de logging
@@ -62,7 +60,8 @@ def run_prepare(params: PrepareParams = PrepareParams()):
                 try:
                     output_json = json.loads(line)
                     break
-                except:
+                except Exception as e:
+                    logger.error(f"Erro ao parsear JSON: {e}")
                     continue
         return {"status": "success", "output": output_json or result.stdout}
     except subprocess.CalledProcessError as e:
@@ -93,7 +92,8 @@ def run_train(params: TrainParams = TrainParams()):
                 try:
                     summary = json.loads(line)
                     break
-                except:
+                except Exception as e:
+                    logger.error(f"Erro ao parsear JSON: {e}")
                     continue
         
         if not summary:
