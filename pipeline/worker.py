@@ -115,6 +115,7 @@ async def run_deploy(req: DeployRequest):
             response = await client.post(
                 f"{API_URL}/reload",
                 json={"run_id": req.run_id},
+                headers={"X-API-Key": os.getenv("API_KEY", "challenge-key")},
                 timeout=30.0
             )
             response.raise_for_status()
