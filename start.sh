@@ -13,7 +13,7 @@ done
 echo "Iniciando a infraestrutura do MLOps Challenge..."
 
 # Lista de serviços principais para verificar
-SERVICES=("api" "gateway" "loki" "promtail" "grafana" "n8n")
+SERVICES=("api" "gateway" "loki" "promtail" "grafana" "n8n" "worker")
 NEEDS_UP=false
 MISSING_SERVICES=()
 

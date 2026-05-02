@@ -1,0 +1,213 @@
+{
+  "name": "ML Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d89ecb76-f1b5-4dd9-84bb-e6f085673962",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "d89ecb76-f1b5-4dd9-84bb-e6f085673962"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "requestMethod": "POST",
+        "url": "http://worker:8001/run/prepare",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonParameters": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "dataset_name",
+              "value": "para_crawl/enpt"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 14400000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Control-Key",
+              "value": "super-secret-key"
+            }
+          ]
+        }
+      },
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "requestMethod": "POST",
+        "url": "http://worker:8001/run/train",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonParameters": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "epochs",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"epochs\"] || 5}}"
+            },
+            {
+              "name": "threshold",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"threshold\"] || 0.35}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 14400000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Control-Key",
+              "value": "super-secret-key"
+            }
+          ]
+        }
+      },
+      "name": "Train Model",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"status\"]}}",
+              "value2": "approved"
+            }
+          ]
+        }
+      },
+      "name": "Is Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "requestMethod": "POST",
+        "url": "http://worker:8001/run/deploy",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonParameters": false,
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "run_id",
+              "value": "={{$json[\"run_id\"]}}"
+            }
+          ]
+        },
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Control-Key",
+              "value": "super-secret-key"
+            }
+          ]
+        }
+      },
+      "name": "Deploy Model",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Pipeline ML Automático\nEste fluxo orquestra as etapas de preparação, treino e deploy."
+      },
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        150
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "Train Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Train Model": {
+      "main": [
+        [
+          {
+            "node": "Is Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Approved?": {
+      "main": [
+        [
+          {
+            "node": "Deploy Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "1"
+}

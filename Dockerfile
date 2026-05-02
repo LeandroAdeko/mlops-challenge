@@ -8,7 +8,9 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     WRAPT_DISABLE_EXTENSIONS=1 \
-    TFDS_DATA_DIR=/tfds
+    TFDS_DATA_DIR=/tfds \
+    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python \
+    CUDA_VISIBLE_DEVICES="-1"
 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

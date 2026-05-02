@@ -1,0 +1,165 @@
+{
+	"info": {
+		"_postman_id": "aa56432a-2b03-4346-9746-409fe940ab29",
+		"name": "MLOps Challenge - Inference & Control Planes",
+		"description": "Collection to test the MLOps challenge infrastructure, including the Inference API (Inference Plane) and the n8n Pipeline (Control Plane).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Inference Plane",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "challenge-key",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8080/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Predict (Translation)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "challenge-key",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"Hi, i'm a engineer.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/predict",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"predict"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Model Info",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "challenge-key",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8080/model",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"model"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Metrics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "challenge-key",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8080/metrics",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"metrics"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Control Plane",
+			"item": [
+				{
+					"name": "Trigger Pipeline (Webhook)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Control-Key",
+								"value": "super-secret-key",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"dataset_name\": \"para_crawl/enpt\",\n    \"epochs\": 5,\n    \"threshold\": 0.35\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/webhook/d89ecb76-f1b5-4dd9-84bb-e6f085673962",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"webhook",
+								"d89ecb76-f1b5-4dd9-84bb-e6f085673962"
+							]
+						},
+						"description": "Dispara o pipeline completo no n8n. Requer X-Control-Key."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
