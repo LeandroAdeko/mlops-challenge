@@ -37,6 +37,7 @@ jobs:
       - name: Run Tests (Pytest)
         env:
           PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
+          PYTHONPATH: .
         run: |
           pytest tests/ -v
 
