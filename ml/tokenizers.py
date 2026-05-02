@@ -9,7 +9,6 @@ from typing import Tuple
 import tensorflow as tf
 
 try:
-    import tensorflow_text  # registra ops necessárias do TF Text
     _TF_TEXT_OK = True
 except Exception:
     _TF_TEXT_OK = False
