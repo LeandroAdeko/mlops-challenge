@@ -81,7 +81,7 @@ class ReloadRequest(BaseModel):
         description="run_id do modelo a carregar.",
     )
     artifacts_dir: str | None = Field(
-        default='/artifacts',
+        default=None,
         description="Diretório alternativo de artefatos (ex.: '/artifacts').",
     )
 
